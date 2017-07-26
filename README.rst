@@ -7,7 +7,7 @@ to full speed, albeit with some framedrop due to the way the display is driven.
 Warning
 -------
 
-This is a proof-of-concept and not an official application note. As such, this code is entirely unsupported by Espressif.
+This is a proof-of-concept of a proof-of-concept for hackerboxes #20 badge and not an official application note. As such, this code is entirely unsupported by Espressif.
 
 
 Compiling
@@ -20,6 +20,10 @@ for your reference, the code was tested against commit 12caaed28063e32d8b1fb13e1
 Display
 -------
 
+Using "make menuconfig" select the "Nofrendo ESP32-specific configuration" and change the hardware to ESP32 Hackerbox #20.
+This setting will correct the pins below and rotate the screen properly.
+
+Below is the original documentation for the display:
 To display the NES output, please connect a 320x240 ili9341-based SPI display to the ESP32 in this way:
 
     =====  =======================
@@ -43,6 +47,12 @@ the SPI controller using DMA is better, but was left out due to this being a pro
 Controller
 ----------
 
+When you enable the Hackerbox hardware, the touchpads will be enabled in the "make menuconfig".
+There is an additional option to switch the start and select combo buttons.
+Start is the up/down buttons pressed simultaneously.
+Select is the left/right pressed simultaneously.
+
+Original docs:
 To control the NES, connect a Playstation 1 or 2 controller as such:
 
     =====  =====
@@ -65,4 +75,3 @@ Copyright
 
 Code in this repository is Copyright (C) 2016 Espressif Systems, licensed under the Apache License 2.0 as described in the file LICENSE. Code in the
 components/nofrendo is Copyright (c) 1998-2000 Matthew Conte (matt@conte.com) and licensed under the GPLv2.
-

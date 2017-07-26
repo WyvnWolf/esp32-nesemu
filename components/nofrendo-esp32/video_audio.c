@@ -40,6 +40,7 @@
 #include <spi_lcd.h>
 
 #include <psxcontroller.h>
+#include <touchpad.h>
 
 #define  DEFAULT_SAMPLERATE   22100
 #define  DEFAULT_FRAGSIZE     128
@@ -115,7 +116,7 @@ static int osd_init_sound(void)
 	};
 	i2s_driver_install(0, &cfg, 4, &queue);
 	i2s_set_pin(0, NULL);
-	i2s_set_dac_mode(I2S_DAC_CHANNEL_LEFT_EN); 
+	i2s_set_dac_mode(I2S_DAC_CHANNEL_LEFT_EN);
 
 	//I2S enables *both* DAC channels; we only need DAC1.
 	//ToDo: still needed now I2S supports set_dac_mode?
@@ -263,17 +264,32 @@ static void videoTask(void *arg) {
 
 static void osd_initinput()
 {
+#if CONFIG_HW_TOUCHPAD_HACKERBOX_20
+  tpcontrollerInit();
+#else
 	psxcontrollerInit();
+#endif
 }
 
 void osd_getinput(void)
 {
+#if CONFIG_HW_TOUCHPAD_HACKERBOX_20
+const int ev[16]={
+		event_joypad1_select,0,0,event_joypad1_a,event_joypad1_up,event_joypad1_left,event_joypad1_down,event_joypad1_right,
+		0,0,0,0,event_soft_reset,event_joypad1_start,event_joypad1_b,event_hard_reset
+	};
+static int oldb=0x0; // inverted
+int b=tpReadInput();
+
+#else
 	const int ev[16]={
 			event_joypad1_select,0,0,event_joypad1_start,event_joypad1_up,event_joypad1_right,event_joypad1_down,event_joypad1_left,
 			0,0,0,0,event_soft_reset,event_joypad1_a,event_joypad1_b,event_hard_reset
 		};
 	static int oldb=0xffff;
 	int b=psxReadInput();
+#endif
+
 	int chg=b^oldb;
 	int x;
 	oldb=b;

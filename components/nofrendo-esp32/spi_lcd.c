@@ -33,9 +33,9 @@
 #define PIN_NUM_DC   CONFIG_HW_LCD_DC_GPIO
 #define PIN_NUM_RST  CONFIG_HW_LCD_RESET_GPIO
 #define PIN_NUM_BCKL CONFIG_HW_LCD_BL_GPIO
-#define LCD_SEL_CMD()   GPIO.out_w1tc = (1 << PIN_NUM_DC) // Low to send command 
+#define LCD_SEL_CMD()   GPIO.out_w1tc = (1 << PIN_NUM_DC) // Low to send command
 #define LCD_SEL_DATA()  GPIO.out_w1ts = (1 << PIN_NUM_DC) // High to send data
-#define LCD_RST_SET()   GPIO.out_w1ts = (1 << PIN_NUM_RST) 
+#define LCD_RST_SET()   GPIO.out_w1ts = (1 << PIN_NUM_RST)
 #define LCD_RST_CLR()   GPIO.out_w1tc = (1 << PIN_NUM_RST)
 
 #if CONFIG_HW_INV_BL
@@ -77,13 +77,13 @@ static void  ILI9341_INITIAL ()
     //------------------------------------Reset Sequence-----------------------------------------//
 
     LCD_RST_SET();
-    ets_delay_us(100000);                                                              
+    ets_delay_us(100000);
 
     LCD_RST_CLR();
-    ets_delay_us(200000);                                                              
+    ets_delay_us(200000);
 
     LCD_RST_SET();
-    ets_delay_us(200000);                                                             
+    ets_delay_us(200000);
 
 
 #if (CONFIG_HW_LCD_TYPE == LCD_TYPE_ILI)
@@ -131,8 +131,19 @@ static void  ILI9341_INITIAL ()
     LCD_WriteCommand(0xC7);    //VCM control2
     LCD_WriteData(0xBE); //i   //»òÕß B1h
 
+#if CONFIG_HW_HACKERBOX_20
+    #define MADCTL_MY  0x80
+    #define MADCTL_MX  0x40
+    #define MADCTL_MV  0x20
+    #define MADCTL_BGR 0x08
+
+    uint8_t m = (MADCTL_MX | MADCTL_MY | MADCTL_MV | MADCTL_BGR);
+    LCD_WriteCommand(0x36);    // Memory Access Control
+    LCD_WriteData(m);
+#else
     LCD_WriteCommand(0x36);    // Memory Access Control
     LCD_WriteData(0x28); //i //was 0x48
+#endif
 
     LCD_WriteCommand(0x3A);
     LCD_WriteData(0x55);
@@ -140,13 +151,13 @@ static void  ILI9341_INITIAL ()
     LCD_WriteCommand(0xB1);
     LCD_WriteData(0x00);
     LCD_WriteData(0x1B); //18
-    
+
     LCD_WriteCommand(0xF2);    // 3Gamma Function Disable
     LCD_WriteData(0x08);
 
     LCD_WriteCommand(0x26);    //Gamma curve selected
     LCD_WriteData(0x01);
-        
+
     LCD_WriteCommand(0xE0);    //Set Gamma
     LCD_WriteData(0x1F);
     LCD_WriteData(0x1A);
@@ -163,7 +174,7 @@ static void  ILI9341_INITIAL ()
     LCD_WriteData(0x07);
     LCD_WriteData(0x05);
     LCD_WriteData(0x00);
- 
+
     LCD_WriteCommand(0XE1);    //Set Gamma
     LCD_WriteData(0x00);
     LCD_WriteData(0x25);
@@ -193,10 +204,10 @@ static void  ILI9341_INITIAL ()
     LCD_WriteData(0x01);
     LCD_WriteData(0x3f);
     LCD_WriteCommand(0x2C);
-    
-    LCD_WriteCommand(0xB7); 
-    LCD_WriteData(0x07); 
-    
+
+    LCD_WriteCommand(0xB7);
+    LCD_WriteData(0x07);
+
     LCD_WriteCommand(0xB6);    // Display Function Control
     LCD_WriteData(0x0A); //8 82 27
     LCD_WriteData(0x82);
@@ -329,10 +340,10 @@ static void spi_master_init()
     WRITE_PERI_REG(SPI_USER1_REG(SPI_NUM), 0);
     SET_PERI_REG_BITS(SPI_CTRL2_REG(SPI_NUM), SPI_MISO_DELAY_MODE, 0, SPI_MISO_DELAY_MODE_S);
     CLEAR_PERI_REG_MASK(SPI_SLAVE_REG(SPI_NUM), SPI_SLAVE_MODE);
-    
+
     WRITE_PERI_REG(SPI_CLOCK_REG(SPI_NUM), (1 << SPI_CLKCNT_N_S) | (1 << SPI_CLKCNT_L_S));//40MHz
     //WRITE_PERI_REG(SPI_CLOCK_REG(SPI_NUM), SPI_CLK_EQU_SYSCLK); // 80Mhz
-    
+
     SET_PERI_REG_MASK(SPI_USER_REG(SPI_NUM), SPI_CS_SETUP | SPI_CS_HOLD | SPI_USR_MOSI);
     SET_PERI_REG_MASK(SPI_CTRL2_REG(SPI_NUM), ((0x4 & SPI_MISO_DELAY_NUM) << SPI_MISO_DELAY_NUM_S));
     CLEAR_PERI_REG_MASK(SPI_USER_REG(SPI_NUM), SPI_USR_COMMAND);
@@ -358,14 +369,14 @@ void ili9341_write_frame(const uint16_t xs, const uint16_t ys, const uint16_t wi
     uint32_t xv, yv, dc;
     uint32_t temp[16];
     dc = (1 << PIN_NUM_DC);
-    
+
     for (y=0; y<height; y++) {
         //start line
         x1 = xs+(width-1);
         y1 = ys+y+(height-1);
         xv = U16x2toU32(xs,x1);
         yv = U16x2toU32((ys+y),y1);
-        
+
         while (READ_PERI_REG(SPI_CMD_REG(SPI_NUM))&SPI_USR);
         GPIO.out_w1tc = dc;
         SET_PERI_REG_BITS(SPI_MOSI_DLEN_REG(SPI_NUM), SPI_USR_MOSI_DBITLEN, 7, SPI_USR_MOSI_DBITLEN_S);
@@ -392,7 +403,7 @@ void ili9341_write_frame(const uint16_t xs, const uint16_t ys, const uint16_t wi
         WRITE_PERI_REG((SPI_W0_REG(SPI_NUM)), 0x2C);
         SET_PERI_REG_MASK(SPI_CMD_REG(SPI_NUM), SPI_USR);
         while (READ_PERI_REG(SPI_CMD_REG(SPI_NUM))&SPI_USR);
-        
+
         x = 0;
         GPIO.out_w1ts = dc;
         SET_PERI_REG_BITS(SPI_MOSI_DLEN_REG(SPI_NUM), SPI_USR_MOSI_DBITLEN, 511, SPI_USR_MOSI_DBITLEN_S);
@@ -423,8 +434,3 @@ void ili9341_init()
     ili_gpio_init();
     ILI9341_INITIAL ();
 }
-
-
-
-
-
