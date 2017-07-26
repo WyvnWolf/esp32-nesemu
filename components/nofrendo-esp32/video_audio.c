@@ -261,41 +261,37 @@ static void videoTask(void *arg) {
 /*
 ** Input
 */
+#if CONFIG_HW_TOUCHPAD_HACKERBOX_20
+	#define CONTROLLER_INIT_FUNC tpcontrollerInit()
+	#define CONTROLLER_READ_FUNC tpReadInput()
+	#define CONTROLLER_START_VAL 0x0
+	#define CONTROLLER_MAPPING event_joypad1_select,0,0,event_joypad1_a,event_joypad1_up,event_joypad1_left,event_joypad1_down,\
+					event_joypad1_right,0,0,0,0,event_soft_reset,event_joypad1_start,event_joypad1_b,event_hard_reset
+#else
+	#define CONTROLLER_INIT_FUNC psxcontrollerInit()
+	#define CONTROLLER_READ_FUNC psxReadInput()
+	#define CONTROLLER_START_VAL 0xffff
+	#define CONTROLLER_MAPPING event_joypad1_select,0,0,event_joypad1_start,event_joypad1_up,event_joypad1_right,event_joypad1_down,event_joypad1_left,\
+					0,0,0,0,event_soft_reset,event_joypad1_a,event_joypad1_b,event_hard_reset
+#endif
+#define CONTROLLER_EVENTS 16
 
 static void osd_initinput()
 {
-#if CONFIG_HW_TOUCHPAD_HACKERBOX_20
-  tpcontrollerInit();
-#else
-	psxcontrollerInit();
-#endif
+	CONTROLLER_INIT_FUNC;
 }
 
 void osd_getinput(void)
 {
-#if CONFIG_HW_TOUCHPAD_HACKERBOX_20
-const int ev[16]={
-		event_joypad1_select,0,0,event_joypad1_a,event_joypad1_up,event_joypad1_left,event_joypad1_down,event_joypad1_right,
-		0,0,0,0,event_soft_reset,event_joypad1_start,event_joypad1_b,event_hard_reset
-	};
-static int oldb=0x0; // inverted
-int b=tpReadInput();
-
-#else
-	const int ev[16]={
-			event_joypad1_select,0,0,event_joypad1_start,event_joypad1_up,event_joypad1_right,event_joypad1_down,event_joypad1_left,
-			0,0,0,0,event_soft_reset,event_joypad1_a,event_joypad1_b,event_hard_reset
-		};
-	static int oldb=0xffff;
-	int b=psxReadInput();
-#endif
-
+	const int ev[CONTROLLER_EVENTS]={ CONTROLLER_MAPPING };
+	static int oldb=CONTROLLER_START_VAL;
+	int b=CONTROLLER_READ_FUNC;
 	int chg=b^oldb;
 	int x;
 	oldb=b;
 	event_t evh;
 //	printf("Input: %x\n", b);
-	for (x=0; x<16; x++) {
+	for (x=0; x<CONTROLLER_EVENTS; x++) {
 		if (chg&1) {
 			evh=event_get(ev[x]);
 			if (evh) evh((b&1)?INP_STATE_BREAK:INP_STATE_MAKE);
