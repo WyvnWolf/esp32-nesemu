@@ -3,14 +3,14 @@
 **
 **
 ** This program is free software; you can redistribute it and/or
-** modify it under the terms of version 2 of the GNU Library General 
+** modify it under the terms of version 2 of the GNU Library General
 ** Public License as published by the Free Software Foundation.
 **
-** This program is distributed in the hope that it will be useful, 
+** This program is distributed in the hope that it will be useful,
 ** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
-** Library General Public License for more details.  To obtain a 
-** copy of the GNU Library General Public License, write to the Free 
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+** Library General Public License for more details.  To obtain a
+** copy of the GNU Library General Public License, write to the Free
 ** Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 **
 ** Any permitted reproduction of these routines, in whole or in part,
@@ -28,7 +28,6 @@
 #include <log.h>
 #include <nes_apu.h>
 #include "nes6502.h"
- 
 
 #define  APU_OVERSAMPLE
 #define  APU_VOLUME_DECAY(x)  ((x) -= ((x) >> 7))
@@ -259,7 +258,7 @@ static int32 apu_rectangle_##ch(void) \
 \
    apu.rectangle[ch].output_vol = total / num_times; \
    return APU_RECTANGLE_OUTPUT(ch); \
-} 
+}
 
 #else /* !APU_OVERSAMPLE */
 #define  APU_MAKE_RECTANGLE(ch) \
@@ -433,7 +432,7 @@ static int32 apu_noise(void)
    apu.noise.accum -= apu.cycle_rate;
    if (apu.noise.accum >= 0)
       return APU_NOISE_OUTPUT;
-   
+
 #ifdef APU_OVERSAMPLE
    if (apu.noise.fixed_envelope)
       outvol = apu.noise.volume << 8; /* fixed volume */
@@ -539,17 +538,17 @@ static int32 apu_dmc(void)
    if (apu.dmc.dma_length)
    {
       apu.dmc.accum -= apu.cycle_rate;
-      
+
       while (apu.dmc.accum < 0)
       {
          apu.dmc.accum += apu.dmc.freq;
-         
+
          delta_bit = (apu.dmc.dma_length & 7) ^ 7;
-         
+
          if (7 == delta_bit)
          {
             apu.dmc.cur_byte = nes6502_getbyte(apu.dmc.address);
-            
+
             /* steal a cycle from CPU*/
             nes6502_burn(1);
 
@@ -593,7 +592,7 @@ static int32 apu_dmc(void)
             }
          }
          /* negative delta */
-         else            
+         else
          {
             if (apu.dmc.regs[1] > 1)
             {
@@ -609,7 +608,7 @@ static int32 apu_dmc(void)
 
 
 void apu_write(uint32 address, uint8 value)
-{  
+{
    int chan;
 
    switch (address)
@@ -672,16 +671,16 @@ void apu_write(uint32 address, uint8 value)
    case APU_WRC3:
 
       apu.triangle.regs[2] = value;
-  
-      /* this is somewhat of a hack.  there appears to be some latency on 
-      ** the Real Thing between when trireg0 is written to and when the 
-      ** linear length counter actually begins its countdown.  we want to 
-      ** prevent the case where the program writes to the freq regs first, 
-      ** then to reg 0, and the counter accidentally starts running because 
+
+      /* this is somewhat of a hack.  there appears to be some latency on
+      ** the Real Thing between when trireg0 is written to and when the
+      ** linear length counter actually begins its countdown.  we want to
+      ** prevent the case where the program writes to the freq regs first,
+      ** then to reg 0, and the counter accidentally starts running because
       ** of the sound queue's timestamp processing.
       **
-      ** set latency to a couple hundred cycles -- should be plenty of time 
-      ** for the 6502 code to do a couple of table dereferences and load up 
+      ** set latency to a couple hundred cycles -- should be plenty of time
+      ** for the 6502 code to do a couple of table dereferences and load up
       ** the other triregs
       */
       apu.triangle.write_latency = (int) (228 / apu.cycle_rate);
@@ -818,7 +817,7 @@ void apu_write(uint32 address, uint8 value)
    case 0x4009:
    case 0x400D:
       break;
-   
+
    default:
       break;
    }
@@ -890,7 +889,24 @@ void apu_process(void *buffer, int num_samples)
       while (num_samples--)
       {
          int32 next_sample, accum = 0;
-
+//#if CONFIG_HW_HACKERBOX_20
+          apu_rectangle_0();
+          apu_rectangle_1();
+         // grab the freq sample from either of the 2 pulse channels
+         if(apu.rectangle[0].volume > 0 && apu.rectangle[0].vbl_length) {
+           *buf16++ = (int16) (111860.8/apu.rectangle[0].freq + 1);
+           *buf16++ = (int16) apu.rectangle[0].volume;
+         }
+         else if(apu.rectangle[1].volume > 0 && apu.rectangle[1].vbl_length) {
+           *buf16++ = (int16) (111860.8/apu.rectangle[1].freq + 1);
+           *buf16++ = (int16) apu.rectangle[1].volume;
+         }
+         else {
+           *buf16++ = (int16) (0);
+           *buf16++ = (int16) (0);
+         }
+         continue;
+//#endif
          if (apu.mix_enable & 0x01)
             accum += apu_rectangle_0();
          if (apu.mix_enable & 0x02)

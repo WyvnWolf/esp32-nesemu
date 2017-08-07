@@ -16,6 +16,7 @@
 #include <freertos/timers.h>
 #include <freertos/task.h>
 #include <freertos/queue.h>
+
 //Nes stuff wants to define this as well...
 #undef false
 #undef true
@@ -36,9 +37,13 @@
 #include <osd.h>
 #include <stdint.h>
 #include "driver/i2s.h"
+#include "driver/ledc.h"
+#include "esp_attr.h"
+#include "esp_err.h"
 #include "sdkconfig.h"
-#include <spi_lcd.h>
+#include "esp_log.h"
 
+#include <spi_lcd.h>
 #include <psxcontroller.h>
 #include <touchpad.h>
 
@@ -57,34 +62,74 @@ int osd_installtimer(int frequency, void *func, int funcsize, void *counter, int
 	printf("Timer install, freq=%d\n", frequency);
 	timer=xTimerCreate("nes",configTICK_RATE_HZ/frequency, pdTRUE, NULL, func);
 	xTimerStart(timer, 0);
-   return 0;
+	return 0;
 }
-
 
 /*
 ** Audio
 */
+#define BUZZERPIN 18
+
+static ledc_timer_config_t buzzer_timer = {
+    .bit_num = LEDC_TIMER_13_BIT, //set timer counter bit number
+    .freq_hz = 440,              //set frequency of pwm
+    .speed_mode = LEDC_HIGH_SPEED_MODE,   //timer mode,
+    .timer_num = LEDC_TIMER_0    //timer index
+};
+
+static ledc_channel_config_t buzzer_channel = {
+    .channel = LEDC_CHANNEL_0,
+    .duty = 0,
+    .gpio_num = BUZZERPIN,
+    .intr_type = LEDC_INTR_DISABLE,
+    .speed_mode = LEDC_HIGH_SPEED_MODE,
+    .timer_sel = LEDC_TIMER_0,
+};
+
+// change the buzzer frequency
+static void beep(int tone, unsigned char volume)
+{
+		if(tone == 0) {
+			buzzer_channel.duty=0;
+		} else {
+			buzzer_timer.freq_hz=tone;
+			buzzer_channel.duty=volume * 9;
+		}
+
+		ledc_timer_config(&buzzer_timer);
+		ledc_channel_config(&buzzer_channel);
+}
+
 static void (*audio_callback)(void *buffer, int length) = NULL;
 #if CONFIG_SOUND_ENA
 QueueHandle_t queue;
-static uint16_t *audio_frame;
+static uint16_t audio_frame[4*DEFAULT_FRAGSIZE];
 #endif
 
 static void do_audio_frame() {
+
 #if CONFIG_SOUND_ENA
+
+#if CONFIG_HW_HACKERBOX_20
+		audio_callback(audio_frame, 2); //get current sample
+		beep(audio_frame[0], audio_frame[1]);
+#else
 	int left=DEFAULT_SAMPLERATE/NES_REFRESH_RATE;
 	while(left) {
 		int n=DEFAULT_FRAGSIZE;
 		if (n>left) n=left;
 		audio_callback(audio_frame, n); //get more data
+
 		//16 bit mono -> 32-bit (16 bit r+l)
 		for (int i=n-1; i>=0; i--) {
 			audio_frame[i*2+1]=audio_frame[i];
 			audio_frame[i*2]=audio_frame[i];
 		}
+
 		i2s_write_bytes(0, audio_frame, 4*n, portMAX_DELAY);
 		left-=n;
 	}
+#endif
 #endif
 }
 
@@ -103,7 +148,9 @@ static void osd_stopsound(void)
 static int osd_init_sound(void)
 {
 #if CONFIG_SOUND_ENA
-	audio_frame=malloc(4*DEFAULT_FRAGSIZE);
+#if CONFIG_HW_HACKERBOX_20
+	// Nothing
+#else
 	i2s_config_t cfg={
 		.mode=I2S_MODE_DAC_BUILT_IN|I2S_MODE_TX|I2S_MODE_MASTER,
 		.sample_rate=DEFAULT_SAMPLERATE,
@@ -122,11 +169,9 @@ static int osd_init_sound(void)
 	//ToDo: still needed now I2S supports set_dac_mode?
 	CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_DAC_XPD_FORCE_M);
 	CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC_M);
-
 #endif
-
+#endif
 	audio_callback = NULL;
-
 	return 0;
 }
 
