@@ -296,7 +296,6 @@ static void videoTask(void *arg) {
 	x = (320-DEFAULT_WIDTH)/2;
     y = ((240-DEFAULT_HEIGHT)/2);
     while(1) {
-		xQueueReceive(vidQueue, &bmp, portMAX_DELAY);//skip one frame to drop to 30
 		xQueueReceive(vidQueue, &bmp, portMAX_DELAY);
 		ili9341_write_frame(x, y, DEFAULT_WIDTH, DEFAULT_HEIGHT, (const uint8_t **)bmp->line);
 	}
@@ -309,13 +308,11 @@ static void videoTask(void *arg) {
 #if CONFIG_HW_TOUCHPAD_HACKERBOX_20
 	#define CONTROLLER_INIT_FUNC tpcontrollerInit()
 	#define CONTROLLER_READ_FUNC tpReadInput()
-	#define CONTROLLER_START_VAL 0x0
-	#define CONTROLLER_MAPPING event_joypad1_select,0,0,event_joypad1_a,event_joypad1_up,event_joypad1_left,event_joypad1_down,\
-					event_joypad1_right,0,0,0,0,event_soft_reset,event_joypad1_start,event_joypad1_b,event_hard_reset
+	#define CONTROLLER_MAPPING event_joypad1_select,0,0,event_joypad1_a,event_joypad1_down,event_joypad1_right,event_joypad1_up,\
+					event_joypad1_left,0,0,0,0,event_soft_reset,event_joypad1_start,event_joypad1_b,event_hard_reset
 #else
 	#define CONTROLLER_INIT_FUNC psxcontrollerInit()
 	#define CONTROLLER_READ_FUNC psxReadInput()
-	#define CONTROLLER_START_VAL 0xffff
 	#define CONTROLLER_MAPPING event_joypad1_select,0,0,event_joypad1_start,event_joypad1_up,event_joypad1_right,event_joypad1_down,event_joypad1_left,\
 					0,0,0,0,event_soft_reset,event_joypad1_a,event_joypad1_b,event_hard_reset
 #endif
@@ -329,7 +326,7 @@ static void osd_initinput()
 void osd_getinput(void)
 {
 	const int ev[CONTROLLER_EVENTS]={ CONTROLLER_MAPPING };
-	static int oldb=CONTROLLER_START_VAL;
+	static int oldb=0xffff;
 	int b=CONTROLLER_READ_FUNC;
 	int chg=b^oldb;
 	int x;

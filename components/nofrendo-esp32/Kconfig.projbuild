@@ -156,8 +156,8 @@ config HW_TOUCHPAD_HACKERBOX_20
 	help
 		Uses the touchpad on hackerbox #20 badge. Start is left+right select is up+down
 
-config HW_TOUCHPAD_START_SELECT_REVERSE
-	bool "Reverse Touchpad START/SELECT"
+config HW_TOUCHPAD_SELECT_REVERSE
+	bool "Reverse Touchpad SELECT"
 	depends on HW_TOUCHPAD_HACKERBOX_20
 	help
 		Start is up/down and Select is left/right by default

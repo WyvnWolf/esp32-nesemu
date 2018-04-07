@@ -3,14 +3,14 @@
 **
 **
 ** This program is free software; you can redistribute it and/or
-** modify it under the terms of version 2 of the GNU Library General 
+** modify it under the terms of version 2 of the GNU Library General
 ** Public License as published by the Free Software Foundation.
 **
-** This program is distributed in the hope that it will be useful, 
+** This program is distributed in the hope that it will be useful,
 ** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
-** Library General Public License for more details.  To obtain a 
-** copy of the GNU Library General Public License, write to the Free 
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+** Library General Public License for more details.  To obtain a
+** copy of the GNU Library General Public License, write to the Free
 ** Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 **
 ** Any permitted reproduction of these routines, in whole or in part,
@@ -137,7 +137,7 @@ static void build_address_handlers(nes_t *machine)
 {
    int count, num_handlers = 0;
    mapintf_t *intf;
-   
+
    ASSERT(machine);
    intf = machine->mmc->intf;
 
@@ -249,11 +249,6 @@ static void build_address_handlers(nes_t *machine)
 /* raise an IRQ */
 void nes_irq(void)
 {
-#ifdef NOFRENDO_DEBUG
-   if (nes.scanline <= NES_SCREEN_HEIGHT)
-      memset(nes.vidbuf->line[nes.scanline - 1], GUI_RED, NES_SCREEN_WIDTH);
-#endif /* NOFRENDO_DEBUG */
-
    nes6502_irq();
 }
 
@@ -301,7 +296,7 @@ static void nes_renderframe(bool draw_flag)
 
    while (262 != nes.scanline)
    {
-      ppu_scanline(nes.vidbuf, nes.scanline, draw_flag);
+      ppu_scanline(vid_getbuffer(), nes.scanline, draw_flag);
 
       if (241 == nes.scanline)
       {
@@ -315,7 +310,7 @@ static void nes_renderframe(bool draw_flag)
          if (mapintf->vblank)
             mapintf->vblank();
          in_vblank = 1;
-      } 
+      }
 
       if (mapintf->hblank)
          mapintf->hblank(in_vblank);
@@ -340,10 +335,6 @@ static void system_video(bool draw)
       gui_frame(false);
       return;
    }
-
-   /* blit the NES screen to our video surface */
-   vid_blit(nes.vidbuf, 0, (NES_SCREEN_HEIGHT - NES_VISIBLE_HEIGHT) / 2,
-            0, 0, NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
 
    /* overlay our GUI on top of it */
    gui_frame(true);
@@ -425,7 +416,7 @@ void nes_reset(int reset_type)
 
    nes.scanline = 241;
 
-   gui_sendmsg(GUI_GREEN, "NES %s", 
+   gui_sendmsg(GUI_GREEN, "NES %s",
                (HARD_RESET == reset_type) ? "powered on" : "reset");
 }
 
@@ -437,7 +428,6 @@ void nes_destroy(nes_t **machine)
       mmc_destroy(&(*machine)->mmc);
       ppu_destroy(&(*machine)->ppu);
       apu_destroy(&(*machine)->apu);
-      bmp_destroy(&(*machine)->vidbuf);
       if ((*machine)->cpu)
       {
          if ((*machine)->cpu->mem_page[0])
@@ -485,9 +475,9 @@ int nes_insertcart(const char *filename, nes_t *machine)
    /* if there's VRAM, let the PPU know */
    if (NULL != machine->rominfo->vram)
       machine->ppu->vram_present = true;
-   
+
    apu_setext(machine->apu, machine->mmc->intf->sound_ext);
-   
+
    build_address_handlers(machine);
 
    nes_setcontext(machine);
@@ -514,12 +504,6 @@ nes_t *nes_create(void)
 
    memset(machine, 0, sizeof(nes_t));
 
-   /* bitmap */
-   /* 8 pixel overdraw */
-   machine->vidbuf = bmp_create(NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT, 8);
-   if (NULL == machine->vidbuf)
-      goto _fail;
-
    machine->autoframeskip = true;
 
    /* cpu */
@@ -528,7 +512,7 @@ nes_t *nes_create(void)
       goto _fail;
 
    memset(machine->cpu, 0, sizeof(nes6502_context));
-   
+
    /* allocate 2kB RAM */
    machine->cpu->mem_page[0] = malloc(NES_RAMSIZE);
    if (NULL == machine->cpu->mem_page[0])

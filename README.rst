@@ -49,8 +49,8 @@ Controller
 
 When you enable the Hackerbox hardware, the touchpads will be enabled in the "make menuconfig".
 There is an additional option to switch the start and select combo buttons.
-Start is the up/down buttons pressed simultaneously.
-Select is the left/right pressed simultaneously.
+Start is non-boot button on the esp32.
+Select is the left/right (or up/down from the menuconfig) pressed simultaneously.
 
 Original docs:
 To control the NES, connect a Playstation 1 or 2 controller as such:
