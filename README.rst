@@ -14,8 +14,19 @@ Compiling
 ---------
 
 This code is an esp-idf project. You will need esp-idf to compile it. Newer versions of esp-idf may introduce incompatibilities with this code;
-for your reference, the code was tested against commit 12caaed28063e32d8b1fb13e13548b6fa52f87b3 of esp-idf.
+for your reference, the code was tested against commit 37765d0071dce62cf6ffb425e0aab3fcab8c0897 of esp-idf.
 
+This version also uses the following TFT library for a custom rom loading boot screen: https://github.com/loboris/ESP32_TFT_library
+Install this in a directory right outside of this project directory.
+It requires these two directories to build. Create soft links.
+
+cd components
+ln -s ../../ESP32_TFT_library-master/components/tft
+ln -s ../../ESP32_TFT_library-master/components/spidriver/
+
+Then replace tftspi.h with tftspi_hb20.h (renaming it to tftspi.h) in the components/tft directory.
+
+The rom names can be updated in main/main.c at line 54.
 
 Display
 -------
@@ -48,9 +59,13 @@ Controller
 ----------
 
 When you enable the Hackerbox hardware, the touchpads will be enabled in the "make menuconfig".
-There is an additional option to switch the start and select combo buttons.
+
+There is an additional option to switch the select combo buttons.
 Start is non-boot button on the esp32.
 Select is the left/right (or up/down from the menuconfig) pressed simultaneously.
+
+flashrom.sh need one addition arg for the slot location of the rom.
+flashrom.sh <name> <0-5>
 
 Original docs:
 To control the NES, connect a Playstation 1 or 2 controller as such:

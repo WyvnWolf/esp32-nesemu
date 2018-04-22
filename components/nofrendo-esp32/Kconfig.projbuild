@@ -143,6 +143,9 @@ config HW_LCD_BL_GPIO
 	default 5 if HW_WROVERKIT
 	default 5 if HW_HACKERBOX_20
 
+config EXAMPLE_DISPLAY_TYPE
+	int
+	default 4 if HW_HACKERBOX_20
 
 config SOUND_ENA
 	bool "Analog audio on GPIO26"
